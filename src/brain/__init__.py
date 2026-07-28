@@ -1,8 +1,8 @@
 """Brain module - LLM providers."""
 
-from .Brain import Brain
+from .brain import Brain
 from .claude import Claude
-from .deepseek import DeepSeek
+from .deep_seek import DeepSeek
 from .fake_brain import FakeBrain
 
 __all__ = ["Brain", "Claude", "DeepSeek", "FakeBrain"]

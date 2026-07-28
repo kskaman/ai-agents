@@ -1,6 +1,6 @@
 """Base brain class."""
 
-from models import Thought, ToolCall
+from src.models import Thought, ToolCall
 
 
 class Brain:

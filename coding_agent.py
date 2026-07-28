@@ -3,8 +3,8 @@
 import os
 from dotenv import load_dotenv
 
-from agent import Agent, AgentStop
-from brain import Claude
+from src.agent import Agent, AgentStop
+from src.brain import Claude
 
 # Load environment variables from .env file
 load_dotenv()
