@@ -1,0 +1,44 @@
+"""Main agent implementation."""
+
+
+class AgentStop(Exception):
+    """Raised when the agent should stop processing."""
+    pass
+
+
+class Agent:
+    """A coding agent that processes user input."""
+
+    def __init__(self, brain):
+        self.brain = brain
+        self.conversation = []
+
+    def handle_input(self, user_input):
+        """
+            Handle user input. Returns output string, 
+            raises AgentStop to quit. 
+        """
+
+        if user_input.strip() == "/q":
+            raise AgentStop("Agent stopped by user command.")
+
+        if not user_input.strip():
+            return ""
+
+        self.conversation.append({"role": "user", "content": user_input})
+
+        try:
+            thought = self.brain.think(self.conversation)
+            if thought.thinking:
+                lines = thought.thinking.strip().split("\n")[:5]
+
+                for i, line in enumerate(lines):
+                    prefix = "..." if i == 0 else "\t"
+                    print(f"\033[2m{prefix}{line}\033[0m")
+
+            text = thought.text or ""
+            self.conversation.append({"role": "assistant", "content": text})
+            return text
+        except Exception as e:
+            self.conversation.pop() # Remove failed user message
+            return f"Error: {e}"
