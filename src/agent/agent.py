@@ -1,3 +1,5 @@
+import os
+
 """Main agent implementation."""
 
 
@@ -9,8 +11,9 @@ class AgentStop(Exception):
 class Agent:
     """A coding agent that processes user input."""
 
-    def __init__(self, brain):
+    def __init__(self, brain, brain_name="claude"):
         self.brain = brain
+        self.brain_name = brain_name
         self.conversation = []
 
     def handle_input(self, user_input):
@@ -22,6 +25,9 @@ class Agent:
         if user_input.strip() == "/q":
             raise AgentStop("Agent stopped by user command.")
 
+        if user_input.strip() == "/switch":
+            return self._switch_brain()
+        
         if not user_input.strip():
             return ""
 
@@ -42,3 +48,21 @@ class Agent:
         except Exception as e:
             self.conversation.pop() # Remove failed user message
             return f"Error: {e}"
+
+    def _switch_brain(self):
+        """Switch between available brains."""
+        from ..brain import BRAINS
+
+        names = list(BRAINS.keys())
+
+        idx = names.index(self.brain_name)
+
+        new_name = names[(idx + 1) % len(names)]
+
+        try:
+            self.brain = BRAINS[new_name]()
+            self.brain_name = new_name
+            os.environ["BRAIN_NAME"] = new_name  # Update environment variable
+            return f"Switched to: {new_name}"
+        except ValueError as e:
+            return f"Cannot switch to {new_name}: {e}"

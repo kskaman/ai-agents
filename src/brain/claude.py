@@ -2,7 +2,7 @@
 
 import os
 from .brain import Brain
-from src.utils import request_with_retry
+from ..utils import request_with_retry
 
 
 class Claude(Brain):
@@ -30,6 +30,7 @@ class Claude(Brain):
                 "type": "enabled",
                 "budget_tokens": 10000
             },
+            "system": "You are a helpful coding assistant. Always respond in English.",
             "messages": conversation
         }
 

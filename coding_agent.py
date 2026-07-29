@@ -4,22 +4,24 @@ import os
 from dotenv import load_dotenv
 
 from src.agent import Agent, AgentStop
-from src.brain import Claude
+from src.brain import BRAINS
 
 # Load environment variables from .env file
 load_dotenv()
 
     
 def main():
-    brain = Claude()
-    agent = Agent(brain)
+    brain_name = os.getenv("BRAIN_NAME")
+    brain = BRAINS[brain_name]()
+    agent = Agent(brain, brain_name=brain_name)
 
-    print("CodeAgent v0.1 initialized.")
-    print("Type '/q' to quit.")
+    print("CodeAgent v0.1")
+    print("Commands:\n\t'/q' - quit\n\t'/switch' - switch brain\n")
+    
 
     while True:
         try:
-            user_input = input("> ")
+            user_input = input(f"[{agent.brain_name}] > ")
             response = agent.handle_input(user_input)
             if response:
                 print(f"\n{response}\n")
