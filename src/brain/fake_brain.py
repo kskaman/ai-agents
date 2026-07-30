@@ -1,7 +1,7 @@
 """Fake brain for testing."""
 
 from .brain import Brain
-from ..models import Thought
+from ..tools import Thought
 
 
 class FakeBrain(Brain):
