@@ -2,7 +2,7 @@
 
 import pytest
 from src.agent import Agent, AgentStop
-from src.models import Thought
+from src.tools import Thought
 from src.brain import FakeBrain
 
 
