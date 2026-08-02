@@ -7,7 +7,8 @@ from ..utils import request_with_retry
 
 class Claude(Brain):
     """Claude API - the brain of our agent."""
-    def __init__(self):
+    def __init__(self, tools = None):
+        self.tools = tools or []
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY not found.")
@@ -34,6 +35,9 @@ class Claude(Brain):
             "messages": conversation
         }
 
+        if self.tools:
+            payload["tools"] = self.tools
+            
         response = request_with_retry(self.url, headers, payload)
         response.raise_for_status()
         return self._parse_response(response.json()["content"])

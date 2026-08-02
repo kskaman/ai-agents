@@ -7,11 +7,11 @@ from ..utils import request_with_retry
 
 class DeepSeek(Brain):
     """DeepSeek API (Anthropic Compatible)."""
-    def __init__(self):
+    def __init__(self, tools = None):
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
         if not self.api_key:
             raise ValueError("DEEPSEEK_API_KEY not found.")
-
+        self.tools = tools or []
         self.model = "deepseek-chat"
         self.url = "https://api.deepseek.com/anthropic/v1/messages"
 
@@ -34,6 +34,9 @@ class DeepSeek(Brain):
             "messages": conversation
         }
 
+        if self.tools:
+            payload["tools"] = self.tools
+            
         response = request_with_retry(self.url, headers, payload)
         response.raise_for_status()
         return self._parse_response(response.json()["content"])

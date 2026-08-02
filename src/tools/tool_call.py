@@ -8,3 +8,8 @@ class ToolCall:
         self.id = id
         self.tool_name = tool_name
         self.args = args
+    
+    @property
+    def name(self):
+        """Alias for tool_name for easier access."""
+        return self.tool_name
