@@ -18,7 +18,7 @@ class WriteFile:
         "required": ["path", "content"]
     }
 
-    def execute(self, path: str, content: str) -> str:
+    def execute(self, context, path: str, content: str) -> str:
         print(f"  -> Writing to {path}")
 
         try:

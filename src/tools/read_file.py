@@ -15,7 +15,7 @@ class ReadFile:
         "required": ["path"]
     }
 
-    def execute(self, path: str) -> str:
+    def execute(self, context, path: str) -> str:
         print(f"  -> Reading {path}")
 
         try:

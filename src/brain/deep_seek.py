@@ -7,8 +7,9 @@ from ..utils import request_with_retry
 
 class DeepSeek(Brain):
     """DeepSeek API (Anthropic Compatible)."""
-    def __init__(self, tools = None):
+    def __init__(self, memory = None, tools = None):
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
+        self.memory = memory
         if not self.api_key:
             raise ValueError("DEEPSEEK_API_KEY not found.")
         self.tools = tools or []
@@ -34,6 +35,8 @@ class DeepSeek(Brain):
             "messages": conversation
         }
 
+        if self.memory:
+            payload["system"] = self.memory.content
         if self.tools:
             payload["tools"] = self.tools
             

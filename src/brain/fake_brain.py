@@ -7,9 +7,9 @@ from ..tools import Thought
 class FakeBrain(Brain):
     """A fake brain (generates LLM-like responses) that can be used for testing purposes."""
 
-    def __init__(self, responses=None, tools=None):
+    def __init__(self, memory=None, responses=None, tools=None):
         self.tools = tools or []
-
+        self.memory = memory
         self.responses = responses or [
             Thought(
                 text="Fake response",

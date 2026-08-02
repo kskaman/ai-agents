@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from src.agent import Agent, AgentStop
 from src.brain import BRAINS
 from src.tools import tools, tool_definitions
+from src.memory import Memory
 
 # Load environment variables from .env file
 load_dotenv()
@@ -13,8 +14,10 @@ load_dotenv()
     
 def main():
     brain_name = os.getenv("BRAIN_NAME")
-    brain = BRAINS[brain_name](tools=tool_definitions(tools))
-    agent = Agent(brain, tools=tools, brain_name=brain_name)
+    memory = Memory()
+    brain = BRAINS[brain_name](memory=memory, tools=tool_definitions(tools))
+    agent = Agent(brain, tools=tools, 
+        memory=memory, brain_name=brain_name)
 
     print("CodeAgent v0.1")
     print("Commands:\n\t'/q' - quit\n\t'/switch' - switch brain\n")

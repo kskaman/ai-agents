@@ -5,11 +5,11 @@ import json
 from dotenv import load_dotenv
 
 import tempfile
-from ..tools import ReadFile, WriteFile, Thought, ToolCall, tools
+from src.tools import ReadFile, WriteFile, Thought, ToolCall, tools, ToolContext, SaveMemory
 
-from ..agent import Agent
-from ..brain import FakeBrain, BRAINS
-
+from src.agent import Agent
+from src.brain import FakeBrain, BRAINS
+from src.memory import Memory
 
 ##########################################
 # Test API
@@ -70,7 +70,7 @@ else:
 
 
 ##########################################
-# Test Tool
+# Test Tools
 ##########################################
 
 # Read Tool Tests
@@ -90,7 +90,7 @@ def test_read_file_adds_line_numbers():
 
     try:
         tool = ReadFile()
-        result = tool.execute(tmp_file_path)
+        result = tool.execute(ToolContext(), tmp_file_path)
         assert "1 | line one" in result
         assert "2 | line two" in result
         assert "3 | line three" in result
@@ -105,13 +105,27 @@ def test_write_file_creates_file():
         file_path = os.path.join(tmpdir, "test.txt")
 
         tool = WriteFile()
-        result = tool.execute(file_path, "Hello, World!")
+        result = tool.execute(ToolContext(), file_path, "Hello, World!")
 
         assert os.path.exists(file_path)
         assert "Successfully wrote" in result
 
         with open(file_path, 'r', encoding='utf-8') as f:
             assert f.read() == "Hello, World!"
+
+
+# Memory tools test
+def test_save_memory_updates_memory():
+    """Verify SaveMemory updates the Memory object."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        memory = Memory(path=os.path.join(tmpdir, "memory.md"))
+        tool = SaveMemory()
+        context = ToolContext(memory=memory)
+
+        result = tool.execute(context, "Updated Preferences")
+
+        assert "successfully" in result.lower()
+        assert memory.content == "Updated Preferences"
 
 
 
@@ -124,7 +138,7 @@ def test_handle_input_returns_brain_response():
     """Verify handle_input returns the brain's response test."""
 
     brain = FakeBrain(responses=[Thought(text="Hello from FakeBrain!")])
-    agent = Agent(brain=brain)
+    agent = Agent(brain=brain, tools=[])
     result = agent.handle_input("Hello, Agent!")
     assert result == "Hello from FakeBrain!"
 
@@ -136,7 +150,7 @@ def test_conversation_accumulates():
         Thought(text="Response 2"),
     ])
 
-    agent = Agent(brain=brain)
+    agent = Agent(brain=brain, tools=[])
     agent.handle_input("First message")
     # Each input adds user and agent messages
     assert len(agent.conversation) == 2
@@ -148,8 +162,11 @@ def test_conversation_accumulates():
 # Test 3: Correct message structure
 def test_conversation_contains_correct_roles():
     """Verify that the conversation contains messages with correct roles."""
-    brain = FakeBrain(responses=[Thought(text="AI Response")])
-    agent = Agent(brain=brain)
+    brain = FakeBrain(responses=[Thought(
+        text="AI Response",
+        raw_content=[{"type": "text", "text": "AI Response"}]
+    )])
+    agent = Agent(brain=brain, tools=[])
     agent.handle_input("User message")
 
     # Check the last two messages in the conversation
@@ -160,14 +177,15 @@ def test_conversation_contains_correct_roles():
     assert user_message["content"] == "User message"
 
     assert agent_message["role"] == "assistant"
-    assert agent_message["content"] == "AI Response"
+    # raw_content is stored as a list
+    assert agent_message["content"][0]["text"] == "AI Response"
 
 
 # Test 4: Brain receives the conversation
 def test_brain_receives_conversation():
     """Verify brain.think is called with the conversation list."""
     brain = FakeBrain()
-    agent = Agent(brain=brain)
+    agent = Agent(brain=brain, tools=[])
 
     agent.handle_input("Test message")
 
@@ -187,7 +205,7 @@ def test_brain_receives_conversation():
 
 def test_agent_stores_brain_name(): 
     """Verify agent stores the brain name.""" 
-    agent = Agent(brain=FakeBrain(), brain_name="claude") 
+    agent = Agent(brain=FakeBrain(), tools=[], brain_name="claude") 
     assert agent.brain_name == "claude" 
 
 def test_brains_registry_has_expected_providers(): 
@@ -204,7 +222,7 @@ def test_switch_command_toggles_brain_name():
     BRAINS["deepseek"] = FakeBrain
 
     try:
-        agent = Agent(brain=FakeBrain(), brain_name="claude")
+        agent = Agent(brain=FakeBrain(), tools=[], brain_name="claude")
         result = agent.handle_input("/switch")
         assert "deepseek" in result
         assert agent.brain_name == "deepseek"
@@ -230,7 +248,7 @@ def test_agentic_loop_executes_tool_calls():
         brain = FakeBrain(responses=[
             Thought(
                 text="Let me read that file.",
-                tool_calls=[ToolCall(id="1", name="read_file", args={"path": temp_path})],
+                tool_calls=[ToolCall(id="1", tool_name="read_file", args={"path": temp_path})],
                 raw_content=[
                     {"type": "text", "text": "Let me read that file."},
                     {"type": "tool_use", "id": "1", "name": "read_file", "input": {"path": temp_path}}
@@ -249,3 +267,31 @@ def test_agentic_loop_executes_tool_calls():
         assert brain.call_count == 2  # Called twice (tool call + final)
     finally:
         os.unlink(temp_path)
+
+
+
+#########################################################
+# Test Memory
+#########################################################
+
+def test_memory_creates_default_file():
+    """Verify Memory creates file with default content if missing."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "memory.md")
+        memory = Memory(path=path)
+
+        assert os.path.exists(path)
+        assert "Coding Agent" in memory.content
+
+
+def test_memory_save_updates_content_and_file():
+    """Verify Memory.save() updates both content and file."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "memory.md")
+        memory = Memory(path=path)
+
+        memory.save("New Content")
+
+        assert memory.content == "New Content"
+        with open(path) as f:
+            assert f.read() == "New Content"

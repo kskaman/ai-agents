@@ -1,5 +1,5 @@
 import os
-from ..tools import get_tool, tool_definitions
+from ..tools import get_tool, tool_definitions, ToolContext
 
 """Main agent implementation."""
 
@@ -12,8 +12,9 @@ class AgentStop(Exception):
 class Agent:
     """A coding agent that processes user input."""
 
-    def __init__(self, brain, tools, brain_name="claude"):
+    def __init__(self, brain, tools, memory = None, brain_name="claude"):
         self.brain = brain
+        self.memory = memory
         self.tools = list(tools)
         self.brain_name = brain_name
         self.conversation = []
@@ -52,7 +53,7 @@ class Agent:
         new_name = names[(idx + 1) % len(names)]
 
         try:
-            self.brain = BRAINS[new_name](tools=tool_definitions(self.tools))
+            self.brain = BRAINS[new_name](memory=self.memory, tools=tool_definitions(self.tools))
             self.brain_name = new_name
             os.environ["BRAIN_NAME"] = new_name  # Update environment variable
             return f"Switched to: {new_name}"
@@ -118,6 +119,7 @@ class Agent:
             return f"Error : Tool '{tool_name}' not found."
 
         try:
-            return tool.execute(**args)
+            context = ToolContext(memory=self.memory)
+            return tool.execute(context, **args)
         except TypeError as e:
             return f"Error: Invalid arguments - {e}"
