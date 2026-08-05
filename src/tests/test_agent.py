@@ -5,7 +5,9 @@ import json
 from dotenv import load_dotenv
 
 import tempfile
-from src.tools import ReadFile, WriteFile, Thought, ToolCall, tools, ToolContext, SaveMemory
+from src.tools import ReadFile, WriteFile, Thought, \
+ToolCall, tools, ToolContext, SaveMemory, ListFiles, \
+SearchCodebase
 
 from src.agent import Agent
 from src.brain import FakeBrain, BRAINS
@@ -127,6 +129,74 @@ def test_save_memory_updates_memory():
         assert "successfully" in result.lower()
         assert memory.content == "Updated Preferences"
 
+
+# List Files Tools
+
+def test_list_files_returns_file_tree():
+    """Verify ListFiles returns a tree structure."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.makedirs(os.path.join(tmpdir, "src"))
+        with open(os.path.join(tmpdir, "README.md"), 'w') as f:
+            f.write("# Test Project")
+        with open(os.path.join(tmpdir, "src", "main.py"), 'w') as f:
+            f.write("print('Hello')")
+
+        tool = ListFiles()
+        context = ToolContext()
+        result = tool.execute(context, path=tmpdir)
+
+        assert "README.md" in result
+        assert "src/" in result
+        assert "main.py" in result
+
+
+def test_list_files_skips_git_and_pycache():
+    """Verify ListFiles skips .git and __pycache__ directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.makedirs(os.path.join(tmpdir, ".git"))
+        os.makedirs(os.path.join(tmpdir, "__pycache__"))
+        with open(os.path.join(tmpdir, ".git", "config"), 'w') as f:
+            f.write("[core]")
+        with open(os.path.join(tmpdir, "__pycache__", "cache.pyc"), 'w') as f:
+            f.write("bytecode")
+        with open(os.path.join(tmpdir, "main.py"), 'w') as f:
+            f.write("print('Hello')")
+
+        tool = ListFiles()
+        context = ToolContext()
+        result = tool.execute(context, path=tmpdir)
+
+        assert "cache" not in result
+        assert "cache.pyc" not in result
+        assert "main.py" in result
+
+# SearchFiles Tool Tests
+def test_search_codebase_finds_matches():
+    """Verify SearchCodebase fins text in files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "test.py"), 'w') as f:
+            f.write("def hello_world():\n    print('hello')\n")
+
+        tool = SearchCodebase()
+        context = ToolContext()
+        result = tool.execute(context, query="hello_world", path=tmpdir)
+
+        assert "test.py" in result
+        assert "hello_world" in result
+        assert ":1" in result  # Line number
+
+
+def test_search_codebase_case_insensitive():
+    """Verify SearchCodebase is case-insensitive."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "test.py"), 'w') as f:
+            f.write("class HelloWorld:\n    pass\n")
+
+        tool = SearchCodebase()
+        context = ToolContext()
+        result = tool.execute(context, query="helloworld", path=tmpdir)
+
+        assert "HelloWorld" in result
 
 
 #########################################################################
