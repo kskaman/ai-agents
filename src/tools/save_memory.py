@@ -3,6 +3,7 @@ class SaveMemory:
     Updates the agent's internal memory/scratchpad.
     """
     name = "save_memory"
+    plan_safe = True
     description = "Updates your internal memory_scratchpad. " \
         "Use this to remember user preferences"
     input_schema = {

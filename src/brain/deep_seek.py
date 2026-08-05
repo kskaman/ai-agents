@@ -10,6 +10,7 @@ class DeepSeek(Brain):
     def __init__(self, memory = None, tools = None):
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
         self.memory = memory
+        self.system = None
         if not self.api_key:
             raise ValueError("DEEPSEEK_API_KEY not found.")
         self.tools = tools or []
@@ -35,8 +36,8 @@ class DeepSeek(Brain):
             "messages": conversation
         }
 
-        if self.memory:
-            payload["system"] = self.memory.content
+        if self.system:
+            payload["system"] = self.system
         if self.tools:
             payload["tools"] = self.tools
             

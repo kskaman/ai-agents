@@ -12,12 +12,37 @@ class AgentStop(Exception):
 class Agent:
     """A coding agent that processes user input."""
 
-    def __init__(self, brain, tools, memory = None, brain_name="claude"):
+    def __init__(self, brain, tools, memory = None,
+        mode="plan", brain_name="claude"):
         self.brain = brain
         self.memory = memory
+        self.mode = mode
         self.tools = list(tools)
+
         self.brain_name = brain_name
+        self.brain.tools = self._tools_for_mode()
+        self.brain.system = self._build_system_prompt()
         self.conversation = []
+
+
+    def _build_system_prompt(self):
+        """Build system prompt from memory and current mode."""
+        parts = [self.memory.content] if self.memory else []
+        if self.mode == "plan":
+            parts.append(
+                "You are in PLAN mode. You cannot write code files. "
+                "Use write_plan to save your plans to PLAN.md."
+            )
+        return "\n".join(parts)
+
+
+    def _tools_for_mode(self):
+        """Return tool definitions based on the current mode."""
+        if self.mode == "act":
+            return tool_definitions(self.tools)
+        return tool_definitions([t for t in self.tools if t.plan_safe])
+
+    
 
     def handle_input(self, user_input):
         """
@@ -30,7 +55,10 @@ class Agent:
 
         if user_input.strip() == "/switch":
             return self._switch_brain()
-        
+
+        if user_input.strip().startswith("/mode"):
+            return self._handle_mode_command(user_input)
+            
         if not user_input.strip():
             return ""
 
@@ -42,6 +70,23 @@ class Agent:
             self.conversation.pop() # Remove failed user message
             return f"Error: {e}"
 
+
+    def _handle_mode_command(self, user_input):
+        """Handle /mode command to switch between plan and act."""
+        parts = user_input.strip().split()
+
+        if len(parts) > 1 and parts[1] == "act":
+            self.mode = "act"
+            self.brain.tools = self._tools_for_mode()
+            self.brain.system = self._build_system_prompt()
+            return "Switched to ACT mode (Writing Enabled)"
+        else:
+            self.mode = "plan"
+            self.brain.tools = self._tools_for_mode()
+            self.brain.system = self._build_system_prompt()
+            return "Switched to PLAN mode (Code Read-Only)"
+
+    
     def _switch_brain(self):
         """Switch between available brains."""
         from ..brain import BRAINS
@@ -53,7 +98,7 @@ class Agent:
         new_name = names[(idx + 1) % len(names)]
 
         try:
-            self.brain = BRAINS[new_name](memory=self.memory, tools=tool_definitions(self.tools))
+            self.brain = BRAINS[new_name](memory=self.memory, tools=self._tools_for_mode())
             self.brain_name = new_name
             os.environ["BRAIN_NAME"] = new_name  # Update environment variable
             return f"Switched to: {new_name}"
@@ -94,8 +139,9 @@ class Agent:
             # Executes tools and collect results
             tool_results = []
             for tool_call in thought.tool_calls:
-
+                print(f"\n[Tool Use: {tool_call.name}]")
                 result = self._execute_tool(tool_call.name, tool_call.args)
+                print(f"[Tool Output: {result[:80]}...]" if len(result) > 80 else f"[Tool Output: {result}]")
 
                 tool_results.append({
                     "type": "tool_result",

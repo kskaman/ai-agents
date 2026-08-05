@@ -9,6 +9,7 @@ class Claude(Brain):
     """Claude API - the brain of our agent."""
     def __init__(self, memory=None, tools = None):
         self.memory = memory
+        self.system = None
         self.tools = tools or []
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -36,8 +37,8 @@ class Claude(Brain):
             "messages": conversation
         }
 
-        if self.memory:
-            payload["system"] = self.memory.content
+        if self.system:
+            payload["system"] = self.system
         if self.tools:
             payload["tools"] = self.tools
             

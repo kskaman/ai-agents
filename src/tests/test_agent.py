@@ -295,3 +295,41 @@ def test_memory_save_updates_content_and_file():
         assert memory.content == "New Content"
         with open(path) as f:
             assert f.read() == "New Content"
+
+
+
+#########################################################################
+# Test Plan Mode
+#########################################################################
+def test_agent_defaults_to_plan_mode():
+    """Verify that the agent defaults to plan mode."""
+    brain = FakeBrain()
+    agent = Agent(brain=brain, tools=tools)
+    assert agent.mode == "plan"
+
+def test_plan_mode_hides_write_file():
+    """Verify plan mode does not expose write_file to the brain."""
+    agent = Agent(brain=FakeBrain(), tools=tools, mode="plan")
+    tool_names = [tool["name"] for tool in agent.brain.tools]
+
+    assert "write_file" not in tool_names
+    assert "write_plan" in tool_names
+
+
+def test_act_mode_shows_all_tools():
+    """Verify act mode exposes all tools to the brain."""
+    agent = Agent(brain=FakeBrain(), tools=tools, mode="act")
+    tool_names = [tool["name"] for tool in agent.brain.tools]
+
+    assert "write_file" in tool_names
+    assert "write_plan" in tool_names
+    assert "read_file" in tool_names
+
+
+def test_mode_command_switches_to_act():
+    """Verify '/mode act' switches the agent to act mode."""
+    agent = Agent(brain=FakeBrain(), tools=tools, mode="plan")
+    result = agent.handle_input("/mode act")
+
+    assert agent.mode == "act"
+    assert 'ACT' in result

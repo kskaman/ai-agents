@@ -9,6 +9,7 @@ class Brain:
     def think(self, conversation: list[dict]) -> Thought:
         """Process conversation, return Thought."""
         raise NotImplementedError()
+    
 
     def _parse_response(self, content: list[dict]) -> Thought:
             """Convert Claude's response into a Thought object."""

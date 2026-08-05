@@ -2,6 +2,7 @@ class WriteFile:
     """Writes content to a file."""
 
     name = "write_file"
+    plan_safe = False
     description = "Writes content to a file. OVERWRITES existing content."
     input_schema = {
         "type": "object",

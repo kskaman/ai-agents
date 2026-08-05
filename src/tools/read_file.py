@@ -2,6 +2,7 @@ class ReadFile:
     """Reads a file from the filesystem."""
 
     name = "read_file"
+    plan_safe = True
     description = "Reads a file from the filesystem. Use this to examine code."
 
     input_schema = {
