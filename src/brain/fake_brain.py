@@ -20,7 +20,7 @@ class FakeBrain(Brain):
         self.call_count = 0
         self.last_conversation = None
 
-    def think(self, conversation):
+    def think(self, conversation, thinking_budget=None):
         """Simulate thinking by returning a pre-defined response."""
         self.last_conversation = list(conversation)  # Store a copy of the conversation
 

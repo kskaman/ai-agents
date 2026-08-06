@@ -29,7 +29,7 @@ def main():
         memory=memory, mode=mode, brain_name=brain_name)
 
     print("Coding Agent v0.6")
-    print("Commands: /q quit, /switch toggle brain, /mode [plan|act]")
+    print("Commands: /q quit, /switch toggle brain, /mode [plan|act], /reset clear history")
     print(f"Brain: {agent.brain_name}")
     
     if mode == "act":
@@ -42,9 +42,14 @@ def main():
     while True:
         try:
             user_input = input(f"[{agent.brain_name}:{agent.mode}] ❯ ")
-            response = agent.handle_input(user_input)
-            if response:
-                print(f"\n{response}\n")
+            
+            try:
+                response = agent.handle_input(user_input)
+                if response:
+                    print(f"\n{response}\n")
+            except KeyboardInterrupt:
+                print("\n\n Query interrupted. Press Ctrl+C again at prompt to exit.\n")
+                continue
 
         except (AgentStop, KeyboardInterrupt):
             print("\nExiting...")

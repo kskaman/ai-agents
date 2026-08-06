@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import tempfile
 from src.tools import ReadFile, WriteFile, Thought, \
 ToolCall, tools, ToolContext, SaveMemory, ListFiles, \
-SearchCodebase
+SearchCodebase, RunCommand
 
 from src.agent import Agent
 from src.brain import FakeBrain, BRAINS
@@ -198,6 +198,37 @@ def test_search_codebase_case_insensitive():
 
         assert "HelloWorld" in result
 
+
+# Run Command Tool Tests
+def test_run_command_executes():
+    """Verify run_command executes shell command."""
+    tool = RunCommand()
+    context = ToolContext()
+    result = tool.execute(context, command="echo 'Hello, World!'")
+
+    assert "Hello, World!" in result
+
+
+def test_run_command_captures_stderr():
+    """Verify run_command captures error output."""
+    tool = RunCommand()
+    context = ToolContext()
+    result = tool.execute(context, 
+        command="python -c \"import sys; sys.stderr.write('error!')\"")
+
+    assert "STDERR" in result
+    assert "error!" in result
+
+
+def test_run_command_timeout(monkeypatch):
+    """Verify run_command times out on long-running commands."""
+    monkeypatch.setenv("CODING_AGENT_TIMEOUT", "1")  # 1 second timeout
+    tool = RunCommand()
+    context = ToolContext()
+    # Use ping as a cross-platform way to wait (works on both Windows and Unix)
+    result = tool.execute(context, command="ping -n 100 127.0.0.1")
+
+    assert "timed out" in result.lower()
 
 #########################################################################
 # Tests for the FakeBrain class

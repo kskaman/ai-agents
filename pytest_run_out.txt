@@ -1,0 +1,17 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.1, pytest-9.1.1, pluggy-1.6.0 -- K:\coding-agent\venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: K:\coding-agent
+collecting ... collected 25 items
+
+src/tests/test_agent.py::test_tool_has_required_attributes PASSED        [  4%]
+src/tests/test_agent.py::test_read_file_adds_line_numbers PASSED         [  8%]
+src/tests/test_agent.py::test_write_file_creates_file PASSED             [ 12%]
+src/tests/test_agent.py::test_save_memory_updates_memory PASSED          [ 16%]
+src/tests/test_agent.py::test_list_files_returns_file_tree PASSED        [ 20%]
+src/tests/test_agent.py::test_list_files_skips_git_and_pycache PASSED    [ 24%]
+src/tests/test_agent.py::test_search_codebase_finds_matches PASSED       [ 28%]
+src/tests/test_agent.py::test_search_codebase_case_insensitive PASSED    [ 32%]
+src/tests/test_agent.py::test_run_command_executes PASSED                [ 36%]
+src/tests/test_agent.py::test_run_command_captures_stderr PASSED         [ 40%]
+src/tests/test_agent.py::test_run_command_timeout 

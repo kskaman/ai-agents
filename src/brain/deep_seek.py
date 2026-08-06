@@ -18,7 +18,7 @@ class DeepSeek(Brain):
         self.url = "https://api.deepseek.com/anthropic/v1/messages"
 
 
-    def think(self, conversation):
+    def think(self, conversation, thinking_budget=3000):
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
@@ -30,14 +30,11 @@ class DeepSeek(Brain):
             "max_tokens": 16000,
             "thinking": {
                 "type": "enabled",
-                "budget_tokens": 10000
+                "budget_tokens": thinking_budget
             },
-            "system": "You are a helpful coding assistant. Always respond in English.",
+            "system": self.system or "You are a helpful coding assistant. Always respond in English.",
             "messages": conversation
         }
-
-        if self.system:
-            payload["system"] = self.system
         if self.tools:
             payload["tools"] = self.tools
             
