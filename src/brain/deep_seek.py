@@ -6,6 +6,8 @@ from ..utils import request_with_retry
 
 
 class DeepSeek(Brain):
+    context_limit = 128_000  # 128k tokens
+    
     """DeepSeek API (Anthropic Compatible)."""
     def __init__(self, memory = None, tools = None):
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
@@ -40,5 +42,6 @@ class DeepSeek(Brain):
             
         response = request_with_retry(self.url, headers, payload)
         response.raise_for_status()
+        data = response.json()
+        self.last_input_tokens = data.get("usage", {}).get("input_tokens", 0)                
         return self._parse_response(response.json()["content"])
-

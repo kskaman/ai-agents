@@ -5,6 +5,8 @@ from ..tools import Thought, ToolCall
 
 class Brain:
     """Base class for LLM providers."""
+    context_limit = 200_000  # 200k tokens
+    last_input_tokens = 0  # Updated after each think() call
 
     def think(self, conversation: list[dict]) -> Thought:
         """Process conversation, return Thought."""

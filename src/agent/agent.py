@@ -135,7 +135,7 @@ class Agent:
         while True:
             iteration += 1
             if iteration > max_iterations:
-                output_parts.append(f"\n  Reached max iterations ({max_iterations}). Use MAX_AGENT_ITERATIONS env var to adjust.")
+                output_parts.append(f"\n  Reached max iterations ({max_iterations}).")
                 break
 
             # Dynamic thinking budget based on context
@@ -157,6 +157,10 @@ class Agent:
                 for i, line in enumerate(lines):
                     prefix = "..." if i == 0 else "\t"
                     print(f"\033[2m{prefix}{line}\033[0m")
+
+            # Compact if approaching context limit
+            if self.brain.last_input_tokens > self.brain.context_limit * 0.75:
+                self._compact_conversation()
 
             # Store raw content for message history (Claude expects this format)
             self.conversation.append({
@@ -243,3 +247,32 @@ class Agent:
             return tool.execute(context, **args)
         except TypeError as e:
             return f"Error: Invalid arguments - {e}"
+
+
+    def _compact_conversation(self):
+        """Summarize old messages to stay within context limits."""
+        print("(compacting conversation...)")
+
+        history = "\n".join(
+            f"{m['role']}: {str(m['content'])[:500]}"
+            for m in self.conversation
+        )
+
+        prompt = [{
+            "role": "user",
+            "content": f"Summarize this conversation for continuity. "
+                       f"Focus on what was accomplished, what's in progress, "
+                       f"and key decisions:\n\n{history}"
+        }]
+
+        saved_tools = self.brain.tools
+        self.brain.tools = []
+        try:
+            thought = self.brain.think(prompt)
+        finally:
+            self.brain.tools = saved_tools
+
+        self.conversation = [{
+            "role": "user",
+            "content": f"Previous conversation summary: {thought.text}"
+        }]

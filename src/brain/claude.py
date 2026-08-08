@@ -18,6 +18,8 @@ class Claude(Brain):
         self.model = "claude-sonnet-4-6"
         self.url = "https://api.anthropic.com/v1/messages"
 
+        self.last_input_tokens = 0
+
 
     def think(self, conversation, thinking_budget=None):
         headers = {
@@ -42,5 +44,7 @@ class Claude(Brain):
             
         response = request_with_retry(self.url, headers, payload)
         response.raise_for_status()
-        return self._parse_response(response.json()["content"])
+        data = response.json()
+        self.last_input_tokens = data.get("usage", {}).get("input_tokens", 0)
+        return self._parse_response(data["content"])
 
