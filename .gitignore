@@ -4,3 +4,5 @@ __pycache__/
 venv/
 .DS_Store
 **.md
+pytest_out.txt
+pytest_run_out.txt

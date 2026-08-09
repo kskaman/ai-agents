@@ -18,7 +18,7 @@ tools = [ReadFile(), WriteFile(), SaveMemory(), WritePlan(),
 
 __all__ = [
         "Thought", "ToolCall", "tools", 
-        "get_tool", "tool_definitions"
+        "get_tool", "tool_definitions",
         "ToolContext", "SaveMemory",
         "WritePlan", "ReadFile", "WriteFile",
         "ListFiles", "SearchCodebase",

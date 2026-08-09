@@ -19,7 +19,10 @@ def main():
     mode = "act" if len(sys.argv) > 1 and \
         sys.argv[1] == "--act" else "plan"
 
-    brain_name = os.getenv("BRAIN_NAME")
+    brain_name = os.getenv("BRAIN_NAME", "ollama")
+    if brain_name not in BRAINS:
+        available = ", ".join(BRAINS)
+        raise ValueError(f"Unknown brain '{brain_name}'. Available brains: {available}")
 
     memory = Memory()
 

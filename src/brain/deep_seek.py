@@ -20,7 +20,7 @@ class DeepSeek(Brain):
         self.url = "https://api.deepseek.com/anthropic/v1/messages"
 
 
-    def think(self, conversation, thinking_budget=3000):
+    def think(self, conversation, thinking_budget=None):
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
@@ -29,11 +29,7 @@ class DeepSeek(Brain):
 
         payload = {
             "model": self.model,
-            "max_tokens": 16000,
-            "thinking": {
-                "type": "enabled",
-                "budget_tokens": thinking_budget
-            },
+            "max_tokens": 4096,
             "system": self.system or "You are a helpful coding assistant. Always respond in English.",
             "messages": conversation
         }
@@ -44,4 +40,4 @@ class DeepSeek(Brain):
         response.raise_for_status()
         data = response.json()
         self.last_input_tokens = data.get("usage", {}).get("input_tokens", 0)                
-        return self._parse_response(response.json()["content"])
+        return self._parse_response(data["content"])

@@ -119,6 +119,7 @@ class Agent:
         try:
             self.brain = BRAINS[new_name](memory=self.memory, tools=self._tools_for_mode())
             self.brain_name = new_name
+            self.brain.system = self._build_system_prompt()
             os.environ["BRAIN_NAME"] = new_name  # Update environment variable
             return f"Switched to: {new_name}"
         except ValueError as e:
