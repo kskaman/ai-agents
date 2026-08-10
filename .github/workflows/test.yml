@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+# Restrict workflow permissions (security best practice)
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

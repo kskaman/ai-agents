@@ -1,0 +1,6 @@
+# Workflow files must be reviewed by repo owners
+/.github/workflows/ @kskaman
+
+# Other sensitive files
+/requirements.txt @kskaman
+/.env @kskaman
