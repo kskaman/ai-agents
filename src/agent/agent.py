@@ -13,11 +13,15 @@ class Agent:
     """A coding agent that processes user input."""
 
     def __init__(self, brain, tools, memory = None,
-        mode="plan", brain_name="claude"):
+        mode="plan", brain_name="claude", workspace_dir=None):
         self.brain = brain
         self.memory = memory
         self.mode = mode
         self.tools = list(tools)
+        self.workspace_dir = workspace_dir or os.path.join(os.getcwd(), "workspace")
+
+        # Create workspace directory if it doesn't exist
+        os.makedirs(self.workspace_dir, exist_ok=True)
 
         self.brain_name = brain_name
         self.brain.tools = self._tools_for_mode()
@@ -34,7 +38,13 @@ class Agent:
             "  - 'run tests' → immediately run pytest, don't read test files first",
             "  - 'list files' → immediately list, don't analyze structure",
             "  - 'fix bug' → read the file, fix it, done",
-            "Only gather context when you truly need it to complete the task."
+            "Only gather context when you truly need it to complete the task.",
+            "",
+            "WORKSPACE: User projects are stored in workspace/ folder by default.",
+            "  - Writing 'app.py' creates workspace/app.py",
+            "  - Reading 'config.json' reads workspace/config.json",
+            "  - To modify agent code, use paths like 'src/*' or 'coding_agent.py'",
+            "  - To read agent tests, use path 'src/tests/test_agent.py'"
         ]
         if self.memory:
             parts.append("\n" + self.memory.content)
@@ -63,8 +73,8 @@ class Agent:
         if user_input.strip() == "/q":
             raise AgentStop("Agent stopped by user command.")
 
-        if user_input.strip() == "/switch":
-            return self._switch_brain()
+        if user_input.strip().startswith("/switch"):
+            return self._handle_switch_command(user_input)
 
         if user_input.strip().startswith("/mode"):
             return self._handle_mode_command(user_input)
@@ -106,15 +116,31 @@ class Agent:
         return "Conversation history cleared"
 
     
-    def _switch_brain(self):
-        """Switch between available brains."""
+    def _handle_switch_command(self, user_input):
+        """Handle /switch command to select or cycle brain providers."""
+        parts = user_input.strip().split()
+        if len(parts) > 2:
+            return "Usage: /switch [claude|deepseek|ollama]"
+
+        return self._switch_brain(parts[1] if len(parts) == 2 else None)
+
+
+    def _switch_brain(self, target_name=None):
+        """Switch to a selected brain, or cycle to the next one."""
         from ..brain import BRAINS
 
         names = list(BRAINS.keys())
 
-        idx = names.index(self.brain_name)
+        if target_name is None:
+            idx = names.index(self.brain_name)
+            new_name = names[(idx + 1) % len(names)]
+        else:
+            new_name = target_name.lower()
+            if new_name not in BRAINS:
+                return f"Unknown brain '{target_name}'. Available brains: {', '.join(names)}"
 
-        new_name = names[(idx + 1) % len(names)]
+        if new_name == self.brain_name:
+            return f"Already using: {new_name}"
 
         try:
             self.brain = BRAINS[new_name](memory=self.memory, tools=self._tools_for_mode())
@@ -244,7 +270,7 @@ class Agent:
             return f"Error : Tool '{tool_name}' not found."
 
         try:
-            context = ToolContext(memory=self.memory)
+            context = ToolContext(memory=self.memory, workspace_dir=self.workspace_dir)
             return tool.execute(context, **args)
         except TypeError as e:
             return f"Error: Invalid arguments - {e}"

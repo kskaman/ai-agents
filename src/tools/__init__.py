@@ -12,9 +12,11 @@ from .list_file import ListFiles
 from .search_codebase import SearchCodebase
 from .run_command import RunCommand
 from .edit_file import EditFile
+from .search_web import SearchWeb
 
 tools = [ReadFile(), WriteFile(), SaveMemory(), WritePlan(),
-         ListFiles(), SearchCodebase(), RunCommand(), EditFile()]
+         ListFiles(), SearchCodebase(), RunCommand(), EditFile(),
+         SearchWeb()]
 
 __all__ = [
         "Thought", "ToolCall", "tools", 
@@ -22,5 +24,5 @@ __all__ = [
         "ToolContext", "SaveMemory",
         "WritePlan", "ReadFile", "WriteFile",
         "ListFiles", "SearchCodebase",
-        "RunCommand", "EditFile"
+        "RunCommand", "EditFile", "SearchWeb"
     ]

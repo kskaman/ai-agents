@@ -32,7 +32,7 @@ def main():
         memory=memory, mode=mode, brain_name=brain_name)
 
     print("Coding Agent v0.6")
-    print("Commands: /q quit, /switch toggle brain, /mode [plan|act], /reset clear history")
+    print("Commands: /q quit, /switch [claude|deepseek|ollama], /mode [plan|act], /reset clear history")
     print(f"Brain: {agent.brain_name}")
     
     if mode == "act":

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import tempfile
 from src.tools import ReadFile, WriteFile, Thought, \
 ToolCall, tools, ToolContext, SaveMemory, ListFiles, \
-SearchCodebase, RunCommand
+SearchCodebase, RunCommand, SearchWeb
 
 from src.agent import Agent
 from src.brain import FakeBrain, BRAINS
@@ -92,7 +92,8 @@ def test_read_file_adds_line_numbers():
 
     try:
         tool = ReadFile()
-        result = tool.execute(ToolContext(), tmp_file_path)
+        # Use absolute path for test file
+        result = tool.execute(ToolContext(workspace_dir=tempfile.gettempdir()), tmp_file_path)
         assert "1 | line one" in result
         assert "2 | line two" in result
         assert "3 | line three" in result
@@ -107,7 +108,7 @@ def test_write_file_creates_file():
         file_path = os.path.join(tmpdir, "test.txt")
 
         tool = WriteFile()
-        result = tool.execute(ToolContext(), file_path, "Hello, World!")
+        result = tool.execute(ToolContext(workspace_dir=tmpdir), file_path, "Hello, World!")
 
         assert os.path.exists(file_path)
         assert "Successfully wrote" in result
@@ -142,7 +143,7 @@ def test_list_files_returns_file_tree():
             f.write("print('Hello')")
 
         tool = ListFiles()
-        context = ToolContext()
+        context = ToolContext(workspace_dir=tmpdir)
         result = tool.execute(context, path=tmpdir)
 
         assert "README.md" in result
@@ -163,7 +164,7 @@ def test_list_files_skips_git_and_pycache():
             f.write("print('Hello')")
 
         tool = ListFiles()
-        context = ToolContext()
+        context = ToolContext(workspace_dir=tmpdir)
         result = tool.execute(context, path=tmpdir)
 
         assert "cache" not in result
@@ -178,7 +179,7 @@ def test_search_codebase_finds_matches():
             f.write("def hello_world():\n    print('hello')\n")
 
         tool = SearchCodebase()
-        context = ToolContext()
+        context = ToolContext(workspace_dir=tmpdir)
         result = tool.execute(context, query="hello_world", path=tmpdir)
 
         assert "test.py" in result
@@ -193,7 +194,7 @@ def test_search_codebase_case_insensitive():
             f.write("class HelloWorld:\n    pass\n")
 
         tool = SearchCodebase()
-        context = ToolContext()
+        context = ToolContext(workspace_dir=tmpdir)
         result = tool.execute(context, query="helloworld", path=tmpdir)
 
         assert "HelloWorld" in result
@@ -203,7 +204,7 @@ def test_search_codebase_case_insensitive():
 def test_run_command_executes():
     """Verify run_command executes shell command."""
     tool = RunCommand()
-    context = ToolContext()
+    context = ToolContext(workspace_dir=tempfile.gettempdir())
     result = tool.execute(context, command="echo 'Hello, World!'")
 
     assert "Hello, World!" in result
@@ -212,7 +213,7 @@ def test_run_command_executes():
 def test_run_command_captures_stderr():
     """Verify run_command captures error output."""
     tool = RunCommand()
-    context = ToolContext()
+    context = ToolContext(workspace_dir=tempfile.gettempdir())
     result = tool.execute(context, 
         command="python -c \"import sys; sys.stderr.write('error!')\"")
 
@@ -220,11 +221,60 @@ def test_run_command_captures_stderr():
     assert "error!" in result
 
 
+# Search Web Tool Tests
+def test_search_web_tool_exists():
+    """Verify SearchWe has required attributes."""
+    tool = SearchWeb()
+    assert tool.name == "search_web"
+    assert tool.description is not None
+    assert tool.input_schema is not None
+
+def test_search_web_in_tools_list():
+    """Verify SearchWeb is in the tools list."""
+    assert any(tool.name == "search_web" for tool in tools)
+
+
+def test_search_web_execute_success(monkeypatch):
+    """Verify SearchWeb returns formatted results."""
+    # Create fake API response matching DuckDuckGo's JSON format
+    fake_response = {
+        "AbstractText": "",
+        "RelatedTopics": [
+            {
+                "Text": "Python 3.13 - Latest release",
+                "FirstURL": "https://python.org"
+            }
+        ]
+    }
+    
+    # Mock requests.get to return our fake data
+    class FakeResponse:
+        def __init__(self):
+            self.status_code = 200
+        
+        def raise_for_status(self):
+            pass
+        
+        def json(self):
+            return fake_response
+    
+    monkeypatch.setattr(
+        "requests.get",
+        lambda *args, **kwargs: FakeResponse()
+    )
+
+    tool = SearchWeb()
+    context = ToolContext(workspace_dir=tempfile.gettempdir())
+    result = tool.execute(context, query="latest python version")
+    assert "Python 3.13" in result
+    
+
+
 def test_run_command_timeout(monkeypatch):
     """Verify run_command times out on long-running commands."""
     monkeypatch.setenv("CODING_AGENT_TIMEOUT", "1")  # 1 second timeout
     tool = RunCommand()
-    context = ToolContext()
+    context = ToolContext(workspace_dir=tempfile.gettempdir())
     # Use ping as a cross-platform way to wait (works on both Windows and Unix)
     result = tool.execute(context, command="ping -n 100 127.0.0.1")
 

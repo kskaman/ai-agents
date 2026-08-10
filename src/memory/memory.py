@@ -4,7 +4,7 @@ class Memory:
     """
     Persistent scratchpad for the agent."""
 
-    def __init__(self, path="memory.md"):
+    def __init__(self, path="./memory.md"):
         self.path = path
         self._ensure_exists()
         self.content = self._load()
