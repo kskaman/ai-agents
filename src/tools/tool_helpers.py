@@ -22,13 +22,13 @@ def resolve_path(path: str, workspace_dir: str) -> str:
     
     Rules:
     - If path is absolute, use as-is
-    - If path starts with 'src/', 'tests/', use agent codebase
+    - If path starts with 'src/', use agent codebase
     - If path is agent root file (coding_agent.py, requirements.txt, etc.), use agent codebase
     - Otherwise, use workspace/ directory for user projects
     
     Args:
         path: The path to resolve
-        workspace_dir: The workspace directory (agent's root)
+        workspace_dir: The agent project root. User projects live below its workspace/ folder.
     
     Returns:
         The resolved absolute path
@@ -40,8 +40,8 @@ def resolve_path(path: str, workspace_dir: str) -> str:
     # Normalize path separators
     normalized = os.path.normpath(path)
     
-    # Agent code directory prefixes (must start with these)
-    agent_dirs = ['src/', 'src\\']
+    parts = normalized.split(os.sep)
+    first_part = parts[0] if parts else normalized
     
     # Agent root files (exact filename match)
     agent_root_files = [
@@ -55,7 +55,7 @@ def resolve_path(path: str, workspace_dir: str) -> str:
     ]
     
     # Check if this is agent's own code
-    is_agent_dir = any(normalized.startswith(d) for d in agent_dirs)
+    is_agent_dir = first_part == "src"
     is_agent_file = os.path.basename(normalized) in agent_root_files
     
     if is_agent_dir or is_agent_file:

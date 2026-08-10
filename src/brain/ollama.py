@@ -2,17 +2,17 @@ import os
 import requests
 
 from .brain import Brain
-from ..utils import request_with_retry
 
 class Ollama(Brain):
     """Ollama local modal (Anthropic Compatible API, with tool support)."""
     context_limit = 128_000  # 128k tokens
+    streams_output = True
 
     def __init__(self, memory=None, tools=None):
         self.memory = memory
         self.system = None
         self.tools = tools or []
-        self.model = os.getenv("OLLAMA_MODEL", "llama3.2")
+        self.model = os.getenv("OLLAMA_MODEL", "qwen3-coder:30b")
         self.url = "http://localhost:11434/v1/messages"
         self.last_input_tokens = 0
 
@@ -35,7 +35,7 @@ class Ollama(Brain):
         except Exception:
             pass # Keep default context limit if detection fails
 
-    def think(self, conversation, thinking_budget=3000):
+    def think(self, conversation):
         headers = {
             "x-api-key": "ollama",
             "anthropic-version": "2023-06-01",
@@ -45,16 +45,13 @@ class Ollama(Brain):
         payload = {
             "model": self.model,
             "max_tokens": 4096,
-            "messages": conversation
+            "messages": conversation,
+            "stream": True,
         }
 
         if self.system:
             payload["system"] = self.system
         if self.tools:
             payload["tools"] = self.tools
-
-        response = request_with_retry(self.url, headers=headers, payload=payload)
-        response.raise_for_status()
-        data = response.json()
-        self.last_input_tokens = data.get("usage", {}).get("input_tokens", 0)
-        return self._parse_response(data["content"])        
+        
+        return self._stream_response(self.url, headers, payload)

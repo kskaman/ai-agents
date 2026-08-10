@@ -18,10 +18,10 @@ class Agent:
         self.memory = memory
         self.mode = mode
         self.tools = list(tools)
-        self.workspace_dir = workspace_dir or os.path.join(os.getcwd(), "workspace")
+        self.workspace_dir = workspace_dir or os.getcwd()
 
-        # Create workspace directory if it doesn't exist
-        os.makedirs(self.workspace_dir, exist_ok=True)
+        # User-created projects live here unless a path targets agent source.
+        os.makedirs(os.path.join(self.workspace_dir, "workspace"), exist_ok=True)
 
         self.brain_name = brain_name
         self.brain.tools = self._tools_for_mode()
@@ -165,11 +165,8 @@ class Agent:
                 output_parts.append(f"\n  Reached max iterations ({max_iterations}).")
                 break
 
-            # Dynamic thinking budget based on context
-            budget = self._calculate_thinking_budget(iteration, max_iterations)
-
             try:
-                thought = self.brain.think(self.conversation, thinking_budget=budget)
+                thought = self.brain.think(self.conversation)
             except KeyboardInterrupt:
                 print("\n\nAgent interrupted by user (Ctrl+C)")
                 # Remove last assistant message if present
@@ -177,22 +174,15 @@ class Agent:
                     self.conversation.pop()
                 return "\n".join(output_parts) + "\n\nInterrupted by user"
 
-            # Display Thinking
-            if thought.thinking:
-                lines = thought.thinking.strip().split("\n")[:5]
-
-                for i, line in enumerate(lines):
-                    prefix = "..." if i == 0 else "\t"
-                    print(f"\033[2m{prefix}{line}\033[0m")
-
             # Compact if approaching context limit
             if self.brain.last_input_tokens > self.brain.context_limit * 0.75:
                 self._compact_conversation()
 
-            # Store raw content for message history (Claude expects this format)
+            # Store provider content for message history. Claude thinking blocks
+            # must keep their signatures when extended thinking is enabled.
             self.conversation.append({
                 "role": "assistant", 
-                "content": thought.raw_content
+                "content": thought.raw_content or [{"type": "text", "text": thought.text or ""}]
             })
 
             # Collect text output
@@ -228,38 +218,10 @@ class Agent:
                 "content": tool_results
             })
 
+        if getattr(self.brain, "streams_output", False):
+            return ""
+
         return "\n".join(output_parts)
-
-
-    def _calculate_thinking_budget(self, iteration, max_iterations):
-        """Calculate dynamic thinking budget based on context."""
-        # Get last user message to determine complexity
-        user_message = ""
-        for msg in reversed(self.conversation):
-            if msg["role"] == "user" and isinstance(msg.get("content"), str):
-                user_message = msg["content"].lower()
-                break
-        
-        # Simple commands get less thinking
-        simple_keywords = ["run", "list", "show", "read", "get", "display"]
-        complex_keywords = ["write", "fix", "debug", "analyze", "create", "implement", "refactor"]
-        
-        if any(kw in user_message for kw in simple_keywords):
-            base_budget = 1500
-        elif any(kw in user_message for kw in complex_keywords):
-            base_budget = 5000
-        else:
-            base_budget = 3000
-        
-        # PLAN mode gets more thinking
-        if self.mode == "plan":
-            base_budget = int(base_budget * 1.3)
-        
-        # Reduce budget in later iterations to force conclusion
-        if iteration > max_iterations // 2:
-            base_budget = int(base_budget * 0.6)
-        
-        return max(1000, base_budget)  # Minimum 1000 tokens
 
 
     def _execute_tool(self, tool_name, args):

@@ -2,11 +2,12 @@
 
 import os
 from .brain import Brain
-from ..utils import request_with_retry
 
 
 class Claude(Brain):
     """Claude API - the brain of our agent."""
+    streams_output = True
+
     def __init__(self, memory=None, tools = None):
         self.memory = memory
         self.system = None
@@ -21,7 +22,7 @@ class Claude(Brain):
         self.last_input_tokens = 0
 
 
-    def think(self, conversation, thinking_budget=None):
+    def think(self, conversation):
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
@@ -33,18 +34,14 @@ class Claude(Brain):
             "max_tokens": 16000,
             "thinking": {
                 "type": "enabled",
-                "budget_tokens": thinking_budget or 3000
+                "budget_tokens": 10000
             },
             "system": self.system or "You are a helpful coding assistant. Always respond in English.",
-            "messages": conversation
+            "messages": conversation,
+            "stream": True,
         }
 
         if self.tools:
             payload["tools"] = self.tools
-            
-        response = request_with_retry(self.url, headers, payload)
-        response.raise_for_status()
-        data = response.json()
-        self.last_input_tokens = data.get("usage", {}).get("input_tokens", 0)
-        return self._parse_response(data["content"])
 
+        return self._stream_response(self.url, headers, payload)

@@ -7,4 +7,4 @@ class ToolContext:
 
     def __init__(self, memory=None, workspace_dir=None):
         self.memory = memory
-        self.workspace_dir = workspace_dir or os.path.join(os.getcwd(), "workspace")
+        self.workspace_dir = workspace_dir or os.getcwd()

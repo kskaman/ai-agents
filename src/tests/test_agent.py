@@ -19,6 +19,7 @@ from src.memory import Memory
 # This is a manual API check, not a pytest test.
 # To run it: python -c "from src.tests.test_agent import test_anthropic_api; test_anthropic_api()"
 
+@pytest.mark.skip(reason="Manual API connectivity check; requires network and ANTHROPIC_API_KEY.")
 def test_anthropic_api():
     """Manual test to verify Anthropic API connectivity."""
     load_dotenv()
@@ -223,32 +224,15 @@ def test_search_web_in_tools_list():
 
 def test_search_web_execute_success(monkeypatch):
     """Verify SearchWeb returns formatted results."""
-    # Create fake API response matching DuckDuckGo's JSON format
-    fake_response = {
-        "AbstractText": "",
-        "RelatedTopics": [
-            {
-                "Text": "Python 3.13 - Latest release",
-                "FirstURL": "https://python.org"
-            }
-        ]
-    }
-    
-    # Mock requests.get to return our fake data
-    class FakeResponse:
-        def __init__(self):
-            self.status_code = 200
-        
-        def raise_for_status(self):
-            pass
-        
-        def json(self):
-            return fake_response
-    
-    monkeypatch.setattr(
-        "requests.get",
-        lambda *args, **kwargs: FakeResponse()
-    )
+    class FakeDDGS:
+        def text(self, query, max_results=3):
+            return [{
+                "title": "Python 3.13 - Latest release",
+                "href": "https://python.org",
+                "body": "Latest release information",
+            }]
+
+    monkeypatch.setattr("src.tools.search_web.DDGS", lambda: FakeDDGS())
 
     tool = SearchWeb()
     context = ToolContext(workspace_dir=tempfile.gettempdir())
