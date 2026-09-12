@@ -1,0 +1,11 @@
+pyproject.toml
+src/agent/__init__.py
+src/agent/agent.py
+src/agent/cli.py
+src/agent/llm.py
+src/research_and_task_execution_agent.egg-info/PKG-INFO
+src/research_and_task_execution_agent.egg-info/SOURCES.txt
+src/research_and_task_execution_agent.egg-info/dependency_links.txt
+src/research_and_task_execution_agent.egg-info/entry_points.txt
+src/research_and_task_execution_agent.egg-info/requires.txt
+src/research_and_task_execution_agent.egg-info/top_level.txt

@@ -1,0 +1,2 @@
+[console_scripts]
+rte = agent.cli:main
