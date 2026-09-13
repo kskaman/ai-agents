@@ -1,31 +1,31 @@
-import argparse
+"""src/aria/cli.py — Aria interactive CLI."""
+from dotenv import load_dotenv
+from .agent import Agent
 
-from .agent import run_agent
+load_dotenv()
 
 def main():
-    """Interactive command-line interface for the agent."""
-    parser = argparse.ArgumentParser(prog="rte", description="Research and task execution agent.")
-    parser.add_argument("--debug", action="store_true", help="Show each step of the agentic loop.")
-    args = parser.parse_args()
+    agent = Agent()
 
-    print("rte v0.1 - type 'exit' to quit.\n")
+    print("Agent v0.2 — type 'exit' to quit.\n")
 
     while True:
         try:
             user_input = input("You: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nExiting...")
+            print("\nGoodbye!")
             break
 
         if not user_input:
             continue
 
         if user_input.lower() in ("exit", "quit"):
-            print("Exiting...")
+            print("Goodbye!")
             break
 
-        response = run_agent(user_input, debug=args.debug)
-        print(f"Agent: {response}")
+        print("\nAgent: ", end="")
+        agent.chat(user_input)
+        print()
 
 if __name__ == "__main__":
     main()
