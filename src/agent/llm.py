@@ -1,5 +1,5 @@
 import time
-from datetime import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Generator
 
@@ -32,6 +32,40 @@ class LLMResponse:
     input_tokens: int = 0
     output_tokens: int = 0
     stop_reason: str = ""
+
+
+@dataclass
+class CostTracker:
+    """Tracks the accumulated cost of a session."""
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_requests: int = 0
+    model: str = "claude-sonnet-5"
+
+    PRICING = {
+        "claude-sonnet-5": {"input": 3.00, "output": 15.00},
+        "gpt-4o": {"input": 2.50, "output": 10.00},
+    }
+
+    def track(self, response: LLMResponse) -> None:
+        self.total_input_tokens += response.input_tokens
+        self.total_output_tokens += response.output_tokens
+        self.total_requests += 1
+
+    @property
+    def total_cost(self) -> float:
+        prices = self.PRICING.get(self.model, {"input": 3.0, "output": 15.0})
+        input_cost = (self.total_input_tokens / 1_000_000) * prices["input"]
+        output_cost = (self.total_output_tokens / 1_000_000) * prices["output"]
+        return input_cost + output_cost
+
+    def summary(self) -> str:
+        return (
+            f"Requests: {self.total_requests} | "
+            f"Tokens: {self.total_input_tokens} in / "
+            f"{self.total_output_tokens} out | "
+            f"Cost: ${self.total_cost:.4f}"
+        )
 
 class LLMClient:
     """Unified client for Anthropic and OpenAI."""
