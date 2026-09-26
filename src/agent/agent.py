@@ -1,3 +1,8 @@
+from config.env_config import (
+    get_provider_model,
+    get_provider_name,
+    validate_provider_api_key,
+)
 from .llm import CostTracker, LLMClient, LLMConfig, Provider
 from rich.console import Console
 from rich.panel import Panel
@@ -30,21 +35,23 @@ execution.
 class Agent:
     """Agent with multi-provider LLM support."""
 
-    def __init__(self, provider: str = "anthropic", debug: bool = False):
-        prov = Provider(provider)
-
-        model = (
-            "claude-sonnet-5"
-            if prov == Provider.ANTHROPIC
-            else "gpt-4o"
-        )
+    def __init__(
+        self,
+        provider: str | None = None,
+        model: str | None = None,
+        debug: bool = False,
+    ):
+        provider_name = get_provider_name(provider)
+        validate_provider_api_key(provider_name)
+        prov = Provider(provider_name)
+        selected_model = get_provider_model(provider_name, model)
 
         self.llm = LLMClient(LLMConfig(
             provider=prov,
-            model=model,
+            model=selected_model,
             system_prompt=SYSTEM_PROMPT,
         ))
-        self.cost_tracker = CostTracker(model=model)
+        self.cost_tracker = CostTracker(model=selected_model)
         self.messages: list[dict] = []
         self.debug = debug
         self.console = Console()
@@ -91,11 +98,12 @@ class Agent:
             response = self.llm.complete(self.messages)
             full_text = response.text
 
-        self.cost_tracker.track(response)
+        request_cost = self.cost_tracker.track(response)
         self._debug_step(
             "RESULT",
             f"Iteration {iteration} completed: {response.input_tokens} input tokens, "
-            f"{response.output_tokens} output tokens, stop reason: "
+            f"{response.output_tokens} output tokens, estimated cost: "
+            f"${request_cost:.6f}, stop reason: "
             f"{response.stop_reason or 'unknown'}.",
         )
         self.messages.append({

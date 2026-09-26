@@ -6,6 +6,7 @@ from typing import Generator
 import anthropic
 import openai
 
+from config.env_config import get_env_float
 from openai import OpenAI
 
 class Provider(Enum):
@@ -40,31 +41,63 @@ class CostTracker:
     total_input_tokens: int = 0
     total_output_tokens: int = 0
     total_requests: int = 0
+    accumulated_cost: float = 0.0
     model: str = "claude-sonnet-5"
 
     PRICING = {
         "claude-sonnet-5": {"input": 3.00, "output": 15.00},
         "gpt-4o": {"input": 2.50, "output": 10.00},
+        "gpt-4o-mini": {"input": 0.15, "output": 0.60},
     }
 
-    def track(self, response: LLMResponse) -> None:
+    def _prices_for(self, model: str) -> dict[str, float]:
+        price_model = model if model in self.PRICING else next(
+            (
+                name
+                for name in sorted(self.PRICING, key=len, reverse=True)
+                if model.startswith(f"{name}-")
+            ),
+            self.model,
+        )
+        defaults = self.PRICING.get(price_model, {"input": 3.0, "output": 15.0})
+        model_key = "".join(
+            character if character.isalnum() else "_"
+            for character in price_model
+        ).upper()
+
+        return {
+            token_type: get_env_float(
+                f"PRICE_{model_key}_{token_type.upper()}_PER_MILLION",
+                default,
+            )
+            for token_type, default in defaults.items()
+        }
+
+    def _cost_for(self, response: LLMResponse) -> float:
+        prices = self._prices_for(response.model)
+
+        input_cost = (response.input_tokens / 1_000_000) * prices["input"]
+        output_cost = (response.output_tokens / 1_000_000) * prices["output"]
+        return input_cost + output_cost
+
+    def track(self, response: LLMResponse) -> float:
+        request_cost = self._cost_for(response)
         self.total_input_tokens += response.input_tokens
         self.total_output_tokens += response.output_tokens
         self.total_requests += 1
+        self.accumulated_cost += request_cost
+        return request_cost
 
     @property
     def total_cost(self) -> float:
-        prices = self.PRICING.get(self.model, {"input": 3.0, "output": 15.0})
-        input_cost = (self.total_input_tokens / 1_000_000) * prices["input"]
-        output_cost = (self.total_output_tokens / 1_000_000) * prices["output"]
-        return input_cost + output_cost
+        return self.accumulated_cost
 
     def summary(self) -> str:
         return (
             f"Requests: {self.total_requests} | "
             f"Tokens: {self.total_input_tokens} in / "
             f"{self.total_output_tokens} out | "
-            f"Cost: ${self.total_cost:.4f}"
+            f"Estimated cost: ${self.total_cost:.4f}"
         )
 
 class LLMClient:
@@ -78,51 +111,75 @@ class LLMClient:
     @property
     def anthropic_client(self) -> anthropic.Anthropic:
         if self._anthropic is None:
-            self._anthropic = anthropic.Anthropic()
+            self._anthropic = anthropic.Anthropic(max_retries=0)
         return self._anthropic
 
     @property
     def openai_client(self) -> OpenAI:
         if self._openai is None:
-            self._openai = OpenAI()
+            self._openai = OpenAI(max_retries=0)
         return self._openai
 
     def complete(self, messages: list[dict]) -> LLMResponse:
         """Sends messages and returns the complete response."""
-        last_error = None
-
-        for attempt in range(self.config.max_retries):
+        for attempt in range(max(1, self.config.max_retries)):
             try:
                 if self.config.provider == Provider.ANTHROPIC:
                     return self._complete_anthropic(messages)
-                else:
-                    return self._complete_openai(messages)
-            except (
-                anthropic.RateLimitError,
-                anthropic.APITimeoutError,
-                openai.RateLimitError,
-                openai.APITimeoutError
-            ) as e:
-                last_error = e
-                delay = self.config.base_delay * (2 ** attempt)
-                time.sleep(delay)
-
-            except (anthropic.APIStatusError, openai.APIStatusError) as e:
-                if e.status_code >= 500:
-                    last_error = e
-                    delay = self.config.base_delay * (2 ** attempt)
-                    time.sleep(delay)
-                else:
-                    raise e
-
-        raise last_error
+                return self._complete_openai(messages)
+            except Exception as error:
+                if not self._should_retry(error, attempt):
+                    raise
+                self._wait_before_retry(attempt)
 
     def stream(self, messages: list[dict]) -> Generator[str, None, LLMResponse]:
         """Streams the response. Yields text, returns LLMResponse."""
-        if self.config.provider == Provider.ANTHROPIC:
-            return self._stream_anthropic(messages)
-        else:
-            return self._stream_openai(messages)
+        for attempt in range(max(1, self.config.max_retries)):
+            response_stream = (
+                self._stream_anthropic(messages)
+                if self.config.provider == Provider.ANTHROPIC
+                else self._stream_openai(messages)
+            )
+            emitted_text = False
+
+            try:
+                while True:
+                    try:
+                        chunk = next(response_stream)
+                    except StopIteration as finished:
+                        return finished.value
+
+                    emitted_text = True
+                    yield chunk
+            except Exception as error:
+                if emitted_text or not self._should_retry(error, attempt):
+                    raise
+                self._wait_before_retry(attempt)
+
+        raise RuntimeError("LLM stream retry loop ended unexpectedly")
+
+    def _should_retry(self, error: Exception, attempt: int) -> bool:
+        if attempt + 1 >= max(1, self.config.max_retries):
+            return False
+
+        if isinstance(error, (
+            anthropic.RateLimitError,
+            anthropic.APITimeoutError,
+            anthropic.APIConnectionError,
+            openai.RateLimitError,
+            openai.APITimeoutError,
+            openai.APIConnectionError,
+        )):
+            return True
+
+        if isinstance(error, (anthropic.APIStatusError, openai.APIStatusError)):
+            return error.status_code >= 500
+
+        return False
+
+    def _wait_before_retry(self, attempt: int) -> None:
+        delay = self.config.base_delay * (2 ** attempt)
+        time.sleep(delay)
 
     def _complete_anthropic(self, messages: list[dict]) -> LLMResponse:
         response = self.anthropic_client.messages.create(
@@ -179,7 +236,6 @@ class LLMClient:
         with self.anthropic_client.messages.stream(
             model=self.config.model,
             max_tokens=self.config.max_tokens,
-            temperature=self.config.temperature,
             system=self.config.system_prompt,
             messages=messages,
         ) as stream:
@@ -214,25 +270,28 @@ class LLMClient:
         oai_messages.extend(messages)
 
         full_text = ""
-        stream = self.openai_client.chat.completions.stream(
+        with self.openai_client.chat.completions.stream(
             model=self.config.model,
             max_tokens=self.config.max_tokens,
             temperature=self.config.temperature,
             messages=oai_messages,
-            stream=True
-        )
+            stream_options={"include_usage": True},
+        ) as stream:
+            for event in stream:
+                if event.type == "content.delta":
+                    full_text += event.delta
+                    yield event.delta
 
-        for chunk in stream:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                full_text += delta.content
-                yield delta.content
+            final = stream.get_final_completion()
+
+        usage = final.usage
+        choice = final.choices[0]
 
         return LLMResponse(
             text=full_text,
-            model=self.config.model,
-            input_tokens=0,
-            output_tokens=0,
-            stop_reason=None,
+            model=final.model,
+            input_tokens=usage.prompt_tokens if usage else 0,
+            output_tokens=usage.completion_tokens if usage else 0,
+            stop_reason=choice.finish_reason,
         )
     
