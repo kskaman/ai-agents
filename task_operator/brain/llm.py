@@ -5,6 +5,7 @@ from __future__ import annotations
 import anthropic
 
 from task_operator.brain.prompts import SYSTEM_PROMPT
+from task_operator.config import get_config
 
 # Pinned in one place so a model change is a one-line, reviewable diff.
 # The book uses a Sonnet model; swap to "claude-sonnet-5-5" for a cheaper run.
@@ -12,9 +13,9 @@ MODEL = "claude-opus-5-5"
 MAX_TOKENS = 16000
 
 
-def new_client(api_key: str | None = None) -> anthropic.Anthropic:
-    """Create an API client (falls back to ANTHROPIC_API_KEY in the environment)."""
-    return anthropic.Anthropic(api_key=api_key)
+def new_client() -> anthropic.Anthropic:
+    """Create an API client using the key from config."""
+    return anthropic.Anthropic(api_key=get_config()["ANTHROPIC_API_KEY"])
 
 
 def think(client, messages: list, tools: list, system: str = SYSTEM_PROMPT):

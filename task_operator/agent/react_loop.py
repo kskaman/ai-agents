@@ -12,6 +12,7 @@ tool to call next. Everything it "does" goes through tools.execute_tool().
 from __future__ import annotations
 
 from task_operator.brain import new_client, think
+from task_operator.config import get_config
 from task_operator.tools import TOOLS, execute_tool
 
 
@@ -19,11 +20,23 @@ def _final_text(response) -> str:
     return "\n".join(b.text for b in response.content if b.type == "text").strip()
 
 
-def react_loop(task: str, max_iterations: int = 10, verbose: bool = True, client=None) -> str:
+def react_loop(
+    task: str,
+    max_iterations: int | None = None,
+    verbose: bool | None = None,
+    client=None,
+) -> str:
     """Run the ReAct loop until the model answers or max_iterations is hit.
 
-    `client` is injectable so unit tests can pass a fake instead of calling the API.
+    max_iterations and verbose come from config; pass them only to override
+    (e.g. the book's max_iterations=2 boundary test). `client` is injectable
+    so unit tests can pass a fake instead of calling the API.
     """
+    config = get_config()
+    if max_iterations is None:
+        max_iterations = config["TASK_OPERATOR_MAX_ITERATIONS"]
+    if verbose is None:
+        verbose = config["TASK_OPERATOR_VERBOSE"]
     client = client or new_client()
     messages = [{"role": "user", "content": task}]
 

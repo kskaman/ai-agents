@@ -1,6 +1,7 @@
 """Tests for the agent loop. The model is faked, so no network or API key."""
 
 from task_operator.agent import react_loop
+from task_operator.config import get_config
 from tests.unit.fakes import FakeClient, response, text_block, tool_use_block
 
 
@@ -76,6 +77,18 @@ def test_loop_stops_at_max_iterations():
     result = react_loop("loop forever", max_iterations=2, verbose=False, client=client)
     assert result == "Error: max iterations reached without a final answer."
     assert len(client.calls) == 2
+
+
+def test_loop_reads_max_iterations_from_config(monkeypatch):
+    """Without an explicit max_iterations, the loop uses the value from config
+    (TASK_OPERATOR_MAX_ITERATIONS)."""
+    monkeypatch.setenv("TASK_OPERATOR_MAX_ITERATIONS", "3")
+    get_config.cache_clear()
+    looping = [response("tool_use", tool_use_block(f"t{i}", "count_characters", {"text": "x"}))
+               for i in range(5)]
+    client = FakeClient(looping)
+    react_loop("loop forever", verbose=False, client=client)
+    assert len(client.calls) == 3
 
 
 def test_loop_handles_refusal():
