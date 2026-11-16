@@ -1,26 +1,43 @@
 # Project overview
 
-This repo is a Python + Playwright test automation project.
+Task Operator: a Python agent built chapter by chapter from the book
+"Building Agentic Systems". Code lives in `task_operator/`:
+
+- `agent/` - the loop (Ch 5: `react_loop.py`); no API or tool details here
+- `brain/` - model calls (`llm.py`, the only file that imports `anthropic`) and prompts
+- `tools/` - one module per tool (function + `SCHEMA`), registered in `registry.py`
+- `config/` - env variables, loaded and validated once at startup
+- `__main__.py` - CLI entry point
+
+Architecture rule (Ch 4): the **deterministic shell** (our code) owns the
+system prompt, tool set, iteration limit, tool execution and message history.
+The **probabilistic core** (the model) only chooses thoughts and tool calls.
 
 # Core workflow
 
 - Propose a plan before editing on any multi-file change.
-- Always inspect existing patterns before creating new files.
+- Inspect existing patterns before creating new files.
 - Prefer minimal diffs over broad refactors.
-- After edits, run the smallest relevant verification first,
-  then broader checks if needed.
+- After edits, run the smallest relevant verification first, then broader checks.
+- Track chapter work and exercises in `plan.md`.
 
 # Commands
 
 - Install: `pip install -r requirements.txt`
-- Unit tests: `pytest tests/unit -q`
-- E2E smoke: `pytest tests/e2e -m smoke -q`
+- Unit tests: `pytest tests/unit -q` (no network, no API key needed)
+- Live run (costs money, ask first): `python -m task_operator "<task>"`
 - Lint: `ruff check .`
 
 # Coding conventions
 
-- Keep selectors inside page object files.
-- Reuse existing helper methods before adding new ones.
+- Model id is a single constant (`MODEL`) per module; never inline it.
+- Tools never raise into the loop: `execute_tool` returns `"Error: ..."` strings
+  and the loop marks them `is_error`.
+- Append the full `response.content` to history, not just the text.
+- Return all `tool_result` blocks for one turn in a single user message.
+- Read env variables only through `task_operator.config.get_config()`; declare
+  new ones in `ENV_VARS` (`task_operator/config/config.py`) and `.env.example`.
+- The API client is injectable (`client=`) so tests use a fake.
 - Avoid changing unrelated tests in the same task.
 
 # Compact instructions
@@ -31,3 +48,4 @@ When using compact, preserve:
 - commands run
 - failing tests and exact errors
 - decisions already made
+- current chapter and exercise in progress

@@ -1,7 +1,18 @@
+# Task Operator
+
+An agent built chapter by chapter while reading "Building Agentic Systems".
+
+```bash
+pip install -r requirements.txt
+pytest tests/unit -q                                   # offline, free
+python -m task_operator "What's 15% of Tokyo's temperature?"   # needs ANTHROPIC_API_KEY in .env
+```
+
 ## Claude files layout
 
-- `CLAUDE.md` - holds only the always relevant-relevant project rules. It is loaded at project start and re-read after /compact. Keep it short.
-- `.claude/rules/` - contains scoped instructions that apply only when Claude works on matching files or areas.
-- `.claude/skills/` - holds reusable procedures and reference material. Skills load only when relevant - supporting files inside a skill stay out of context until needed.
-- `.claude/agents/` - defines subagents with specific roles, tools, and model assignments.
-- `.claude/settings.json` - holds permissions, hooks, and defaults - the enforceable part of your shell.
+- `CLAUDE.md` - holds only the always-relevant project rules. It is loaded at session start and re-read after /compact. Keep it short.
+- `.claude/rules/` - contains scoped instructions that apply only when Claude works on matching files (`tests.md` → `tests/**`).
+- `.claude/skills/` - holds reusable procedures (`ship-check`: run with `/ship-check` before committing).
+- `.claude/agents/` - defines subagents with specific roles, tools, and models (`researcher`, `reviewer`).
+- `.claude/settings.json` - holds permissions and hooks, the enforceable part of the shell (auto-allow tests/lint, block `.env` files).
+- `plan.md` - the backlog of chapter tasks and exercises.
