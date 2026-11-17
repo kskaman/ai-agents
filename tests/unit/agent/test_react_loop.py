@@ -91,6 +91,26 @@ def test_loop_reads_max_iterations_from_config(monkeypatch):
     assert len(client.calls) == 3
 
 
+def test_loop_with_history_remembers_earlier_turns():
+    """Passing the same history list to two calls makes the second request
+    include the first question and answer - the agent's memory in chat."""
+    client = FakeClient(
+        [
+            response("end_turn", text_block("It's 71°F in Tokyo.")),
+            response("end_turn", text_block("About 21.7°C.")),
+        ]
+    )
+    history = []
+    react_loop("Weather in Tokyo?", verbose=False, client=client, history=history)
+    react_loop("In Celsius?", verbose=False, client=client, history=history)
+
+    second_request = client.calls[1]["messages"]
+    assert [m["role"] for m in second_request] == ["user", "assistant", "user"]
+    assert second_request[0]["content"] == "Weather in Tokyo?"
+    assert second_request[2]["content"] == "In Celsius?"
+    assert len(history) == 4  # both questions and both answers
+
+
 def test_loop_handles_refusal():
     """If the model declines the request, the loop stops and says so."""
     client = FakeClient([response("refusal")])

@@ -19,7 +19,11 @@ def response(stop_reason, *content):
 
 
 class FakeClient:
-    """Mimics client.beta.messages.create and records every request."""
+    """Mimics client.beta.messages.create and records every request.
+
+    Each item in `responses` is returned in turn; an Exception item is raised
+    instead, to simulate an API error.
+    """
 
     def __init__(self, responses):
         self._responses = iter(responses)
@@ -29,4 +33,7 @@ class FakeClient:
     def _create(self, **kwargs):
         # Snapshot the history: the loop keeps mutating the same list.
         self.calls.append({**kwargs, "messages": list(kwargs["messages"])})
-        return next(self._responses)
+        result = next(self._responses)
+        if isinstance(result, Exception):
+            raise result
+        return result

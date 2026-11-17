@@ -7,7 +7,9 @@
 - [x] `react_loop` with Thought / Action / Observation output and `max_iterations`
 - [x] Unit tests with a fake client (`tests/unit/agent/test_react_loop.py`)
 - [x] Split into `agent/`, `brain/`, `tools/`, `config/` packages
+- [x] Chat CLI with memory between turns (`python -m task_operator`)
 - [ ] Live run: watch a multi-tool task end to end
+- [ ] Stream answers word by word in the chat
 - [ ] Exercise: add a `read_file(path)` tool, limited to the project folder
 - [ ] Boundary test: question that needs no tool
 - [ ] Boundary test: ambiguous task

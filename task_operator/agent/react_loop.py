@@ -25,12 +25,16 @@ def react_loop(
     max_iterations: int | None = None,
     verbose: bool | None = None,
     client=None,
+    history: list | None = None,
 ) -> str:
     """Run the ReAct loop until the model answers or max_iterations is hit.
 
     max_iterations and verbose come from config; pass them only to override
     (e.g. the book's max_iterations=2 boundary test). `client` is injectable
     so unit tests can pass a fake instead of calling the API.
+
+    `history` is the conversation so far. When given, this turn is appended to
+    it in place, so the next call remembers it (that's how chat works).
     """
     config = get_config()
     if max_iterations is None:
@@ -38,7 +42,8 @@ def react_loop(
     if verbose is None:
         verbose = config["TASK_OPERATOR_VERBOSE"]
     client = client or new_client()
-    messages = [{"role": "user", "content": task}]
+    messages = history if history is not None else []
+    messages.append({"role": "user", "content": task})
 
     for iteration in range(1, max_iterations + 1):
         if verbose:

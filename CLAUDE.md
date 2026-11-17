@@ -7,7 +7,8 @@ Task Operator: a Python agent built chapter by chapter from the book
 - `brain/` - model calls (`llm.py`, the only file that imports `anthropic`) and prompts
 - `tools/` - one module per tool (function + `SCHEMA`), registered in `registry.py`
 - `config/` - env variables, loaded and validated once at startup
-- `__main__.py` - CLI entry point
+- `cli/` - interactive chat (`chat.py`); keeps `history` across turns
+- `__main__.py` - entry point: starts the chat (command-line arguments are rejected)
 
 Architecture rule (Ch 4): the **deterministic shell** (our code) owns the
 system prompt, tool set, iteration limit, tool execution and message history.
@@ -25,7 +26,7 @@ The **probabilistic core** (the model) only chooses thoughts and tool calls.
 
 - Install: `pip install -r requirements.txt`
 - Unit tests: `pytest tests/unit -q` (no network, no API key needed)
-- Live run (costs money, ask first): `python -m task_operator "<task>"`
+- Live run (costs money, ask first): `python -m task_operator` (chat)
 - Lint: `ruff check .`
 
 # Coding conventions

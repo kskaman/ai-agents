@@ -5,7 +5,7 @@ An agent built chapter by chapter while reading "Building Agentic Systems".
 ```bash
 pip install -r requirements.txt
 pytest tests/unit -q                                   # offline, free
-python -m task_operator "What's 15% of Tokyo's temperature?"   # needs ANTHROPIC_API_KEY in .env
+python -m task_operator     # chat (/help, /reset, /exit); needs ANTHROPIC_API_KEY in .env
 ```
 
 ## Claude files layout

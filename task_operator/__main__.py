@@ -1,20 +1,20 @@
-"""Command-line entry point.
+"""Command-line entry point: starts the chat.
 
-Run:  python -m task_operator "What is 15% of the temperature in Tokyo?"
+Run:  python -m task_operator
 """
 
 import sys
 
-from task_operator.agent import react_loop
+from task_operator.cli import run_chat
 from task_operator.config import ConfigError, get_config
 
-DEFAULT_TASK = (
-    "What's the temperature in Tokyo in Celsius, and how many characters "
-    "are in the word 'Tokyo'?"
-)
+USAGE = "Usage: python -m task_operator\n(No arguments - ask your questions inside the chat.)"
 
 
 def main() -> None:
+    if len(sys.argv) > 1:
+        sys.exit(USAGE)
+
     # Load and validate every env variable once, before doing any work, so a
     # bad .env fails here with a clear message. Later get_config() calls in
     # other modules reuse this cached result.
@@ -23,8 +23,7 @@ def main() -> None:
     except ConfigError as e:
         sys.exit(str(e))
 
-    task = " ".join(sys.argv[1:]) or DEFAULT_TASK
-    print(f"\nFinal answer:\n{react_loop(task)}")
+    run_chat()
 
 
 if __name__ == "__main__":
