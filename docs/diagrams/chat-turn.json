@@ -1,0 +1,311 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "One Chat Turn With a Tool Call",
+    "output": "docs/chat-turn.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/kskaman/ai-agents.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "dd390af94dafa6fdcf0442ea74c29c8d18dcdf13"
+    }
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "You",
+      "sublabel": "terminal",
+      "sources": [
+        {
+          "path": "task_operator/cli/chat.py",
+          "line": 28,
+          "end_line": 33,
+          "label": "reads input"
+        }
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "Chat CLI",
+      "sublabel": "cli/chat.py",
+      "sources": [
+        {
+          "path": "task_operator/cli/chat.py",
+          "line": 52,
+          "end_line": 66,
+          "label": "one turn"
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Agent loop",
+      "sublabel": "react_loop.py",
+      "sources": [
+        {
+          "path": "task_operator/agent/react_loop.py",
+          "line": 45,
+          "end_line": 90,
+          "label": "loop body"
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "Tool registry",
+      "sublabel": "execute_tool",
+      "sources": [
+        {
+          "path": "task_operator/tools/registry.py",
+          "line": 22,
+          "end_line": 31,
+          "label": "execute_tool"
+        }
+      ]
+    },
+    {
+      "id": "brain",
+      "type": "backend",
+      "label": "Brain",
+      "sublabel": "brain/llm.py",
+      "sources": [
+        {
+          "path": "task_operator/brain/llm.py",
+          "line": 21,
+          "end_line": 36,
+          "label": "think()"
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "cloud",
+      "label": "Anthropic API",
+      "sublabel": "Messages (beta)",
+      "sources": [
+        {
+          "path": "task_operator/brain/llm.py",
+          "line": 23,
+          "end_line": 36,
+          "label": "messages.create"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 225,
+      "label": "Your message"
+    },
+    {
+      "from": 230,
+      "to": 350,
+      "label": "Reason"
+    },
+    {
+      "from": 355,
+      "to": 470,
+      "label": "Act + Observe"
+    },
+    {
+      "from": 475,
+      "to": 605,
+      "label": "Reason again"
+    },
+    {
+      "from": 610,
+      "to": 670,
+      "label": "Reply"
+    }
+  ],
+  "messages": [
+    {
+      "id": "type-question",
+      "from": "user",
+      "to": "cli",
+      "y": 165,
+      "label": "weather in Tokyo?",
+      "variant": "default"
+    },
+    {
+      "id": "start-turn",
+      "from": "cli",
+      "to": "agent",
+      "y": 195,
+      "label": "react_loop(line, history)",
+      "variant": "emphasis",
+      "note": "history gets the user message"
+    },
+    {
+      "id": "think-1",
+      "from": "agent",
+      "to": "brain",
+      "y": 245,
+      "label": "think(messages, TOOLS)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "create-1",
+      "from": "brain",
+      "to": "api",
+      "y": 273,
+      "label": "messages.create",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tool-use",
+      "from": "api",
+      "to": "brain",
+      "y": 301,
+      "label": "stop_reason: tool_use",
+      "variant": "return"
+    },
+    {
+      "id": "response-1",
+      "from": "brain",
+      "to": "agent",
+      "y": 329,
+      "label": "get_weather(Tokyo)",
+      "variant": "return",
+      "note": "full content appended to history"
+    },
+    {
+      "id": "run-tool",
+      "from": "agent",
+      "to": "tools",
+      "y": 392,
+      "label": "execute_tool(name, input)",
+      "variant": "default",
+      "note": "a failure returns an Error: string"
+    },
+    {
+      "id": "tool-result",
+      "from": "tools",
+      "to": "agent",
+      "y": 450,
+      "label": "Tokyo: 71°F, clear",
+      "variant": "return"
+    },
+    {
+      "id": "think-2",
+      "from": "agent",
+      "to": "brain",
+      "y": 492,
+      "label": "think(+ tool_result)",
+      "variant": "emphasis",
+      "note": "all results in one user message"
+    },
+    {
+      "id": "create-2",
+      "from": "brain",
+      "to": "api",
+      "y": 540,
+      "label": "messages.create",
+      "variant": "emphasis"
+    },
+    {
+      "id": "end-turn",
+      "from": "api",
+      "to": "brain",
+      "y": 568,
+      "label": "stop_reason: end_turn",
+      "variant": "return"
+    },
+    {
+      "id": "response-2",
+      "from": "brain",
+      "to": "agent",
+      "y": 596,
+      "label": "final text",
+      "variant": "return"
+    },
+    {
+      "id": "answer",
+      "from": "agent",
+      "to": "cli",
+      "y": 626,
+      "label": "answer",
+      "variant": "return"
+    },
+    {
+      "id": "print-answer",
+      "from": "cli",
+      "to": "user",
+      "y": 654,
+      "label": "agent> 71°F, clear",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "cli",
+      "from": 160,
+      "to": 660,
+      "type": "frontend"
+    },
+    {
+      "participant": "agent",
+      "from": 195,
+      "to": 632,
+      "type": "backend"
+    },
+    {
+      "participant": "brain",
+      "from": 240,
+      "to": 335,
+      "type": "backend"
+    },
+    {
+      "participant": "api",
+      "from": 268,
+      "to": 307,
+      "type": "cloud"
+    },
+    {
+      "participant": "tools",
+      "from": 387,
+      "to": 456,
+      "type": "backend"
+    },
+    {
+      "participant": "brain",
+      "from": 487,
+      "to": 602,
+      "type": "backend"
+    },
+    {
+      "participant": "api",
+      "from": 535,
+      "to": 574,
+      "type": "cloud"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "When the loop stops",
+      "items": [
+        "Any stop_reason other than tool_use ends the turn with the final text",
+        "A refusal returns an error message instead",
+        "After max_iterations the loop gives up with an error"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "If something fails",
+      "items": [
+        "Tool errors go back to the model as observations (is_error)",
+        "An API error or Ctrl+C removes the whole turn from history",
+        "Values shown (Tokyo, 71°F) are the weather stub's data"
+      ]
+    }
+  ]
+}

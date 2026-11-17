@@ -21,6 +21,9 @@ The **probabilistic core** (the model) only chooses thoughts and tool calls.
 - Prefer minimal diffs over broad refactors.
 - After edits, run the smallest relevant verification first, then broader checks.
 - Track chapter work and exercises in `plan.md`.
+- When a change adds, removes or rewires a component, tool, config value or
+  chat-turn step, update the diagrams in `docs/` in the same task (use the
+  `update-diagrams` skill).
 
 # Commands
 

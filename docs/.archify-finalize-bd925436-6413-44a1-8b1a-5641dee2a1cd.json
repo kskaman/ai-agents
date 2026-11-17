@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "running",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-11-17T21:01:06.390Z",
+  "specification": {
+    "path": "K:\\ai-agent\\docs\\diagrams\\architecture.json",
+    "sha256": "52e65df8a261c89d278a16a506f481158a735e40dfa6d437e166918af70d9053",
+    "bytes": 5624
+  },
+  "artifact": {
+    "path": "K:\\ai-agent\\docs\\architecture.html"
+  },
+  "stages": {},
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "K:\\ai-agent\\docs\\architecture.finalize.json",
+    "summaryReceipt": "K:\\ai-agent\\docs\\architecture.finalize-summary.json"
+  },
+  "visualReview": "not-requested"
+}

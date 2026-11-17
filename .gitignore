@@ -30,3 +30,9 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Archify check receipts (regenerated on every finalize)
+docs/*.finalize.json
+docs/*.finalize-summary.json
+docs/*.browser-check.json
+docs/*.delivery.json
