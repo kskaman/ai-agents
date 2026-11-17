@@ -23,7 +23,7 @@ def _final_text(response) -> str:
 def react_loop(
     task: str,
     max_iterations: int | None = None,
-    verbose: bool | None = None,
+    verbose: bool = True,
     client=None,
     history: list | None = None,
 ) -> str:
