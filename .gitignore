@@ -36,3 +36,4 @@ docs/*.finalize.json
 docs/*.finalize-summary.json
 docs/*.browser-check.json
 docs/*.delivery.json
+docs/.archify-*
